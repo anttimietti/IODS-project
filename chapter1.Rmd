@@ -1,7 +1,7 @@
 
 # About the project
 
-*Write a short description about the course and add a link to your GitHub repository here. This is an R Markdown (.Rmd) file so you should use R Markdown syntax.*
+*Introduction to Open Data Science 2020. My GitHub repository: https://anttimietti.github.io/IODS-project/*
 
 ```{r}
 # This is a so-called "R chunk" where you can write R code.
@@ -9,5 +9,24 @@
 date()
 
 ```
-The text continues here.
 
+# Homework 1
+
+_How am I feeling right now?_
+
+I'm alright, ready to master R Markdown!
+
+_What do I expect to learn?_
+
+__Everything__ a data scientist can hope for. Well, at least about these topics:
+
++ GitHub
++ Improving the reproducibility of my research
+
+_Where did I hear about the course?_
+
+I got an email advertisement to one of the lists I'm subscribed to.
+
+_Where is my GitHub repository?_
+
+[Click here](https://anttimietti.github.io/IODS-project/) or this link: https://anttimietti.github.io/IODS-project/
