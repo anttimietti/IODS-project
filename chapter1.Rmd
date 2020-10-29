@@ -29,4 +29,4 @@ I got an email advertisement to one of the lists I'm subscribed to.
 
 _Where is my GitHub repository?_
 
-[Click here](https://https://github.com/anttimietti/IODS-project/) or this link: https://github.com/anttimietti/IODS-project/
+[Click here](https://github.com/anttimietti/IODS-project/) or this link: https://github.com/anttimietti/IODS-project/
