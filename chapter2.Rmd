@@ -1,6 +1,6 @@
-# Insert chapter 2 title here
+# Homework 2
 
-*Describe the work you have done this week and summarize your learning.*
+*This week we learnt about regression analysis and model validation.*
 
 - Describe your work and results clearly. 
 - Assume the reader has an introductory course level understanding of writing and reading R code as well as statistical methods.
@@ -10,4 +10,115 @@
 date()
 ```
 
-Here we go again...
+# 1) Structure and dimensions of the data
+
+```{r}
+students2014 <- read.table("data/learning2014_chosen.txt", header=TRUE, sep="\t")
+
+str(students2014)
+```
+
+__Interpretation:__ The dataset is a data frame, consisting of 166 observations and 7 variables.
+
+The variables in the dataset are gender, age, attitude, deep, stra, surf and points.
+Gender is a factor variable, age and points are integers, and the rest of the variables are numerical.
+
+Each observation in the dataset is a student, and the variables correspond to each student's gender, age etc. The data consists of observations of students and was collected by using a survey.
+
+```{r}
+
+dim(students2014)
+```
+
+__Interpretation:__ The dataset has 166 rows (observations) and 7 columns (variables).
+
+# 2) Overview of the data
+
+```{r}
+# Accessing libraries ggplot2 & GGally
+library(ggplot2)
+library(GGally)
+
+# Drawing a scatter plot matrix of the variables in the dataset
+ggpairs(students2014, lower = list(combo = wrap("facethist", bins = 20)))
+```
+
+__Interpretation:__ Variables that are most strongly correlated with points are attitude, stra and surf. Attitude and stra are both positively correlated with points, while surf is negatively correlated with points. Attitude has the strongest positive correlation with points in the dataset.
+
+```{r}
+# Drawing a scatter plot matrix of the variables in the dataset, with males and females separately
+plot1 <- ggpairs(students2014, mapping = aes(col=gender, alpha = 0.3), 
+                 lower = list(combo = wrap("facethist", bins = 20)))
+
+plot1
+```
+
+__Interpretation:__ There are some differences between males and females in the dataset. For example, deep and surf are significantly negatively correlated within females, but not significantly so within males. However, overall the differences are not large and the correlations of different variables with points are similar within both genders.
+
+```{r}
+# Summary of the variables
+
+summary(students2014)
+
+```
+
+__Interpretation:__ Most of the observations in the dataset are of females (110 females vs. 56 males). Most students are quite young, as the median age is 22 and mean age 25.51 years. The oldest student in the dataset is 55 years. The distribution of the other variables is quite wide.
+
+# 3) Fitting a regression model
+
+```{r}
+# Choosing the following three variables as explanatory variables:
+# attitude, stra, surf (because they are most strongly correlated with points)
+
+# Fitting a multiple regression model where exam points is the dependent variable
+
+my_model <- lm(points ~ attitude + stra + surf, data = students2014)
+
+# Summary of the fitted model
+
+summary(my_model)
+```
+
+__Interpretation:__ The regression model is used for investigating the relationship between the dependent variable (points) and the explanatory variables (attitude, stra, surf). Here only attitude has a statistically significant relationship with points, and should therefore be used to explain how many points a student has acquired.
+
+Because only attitude is statistically significant here, I will remove the other too explanatory variables from the model and fit the model again without them (below). In other words, I will use a simple regression model instead of the multiple regression model used above.
+
+```{r}
+# Using the simple regression model
+my_model2 <- lm(points ~ attitude, data = students2014)
+```
+
+__Interpretation:__ This simpler model should provide a more accurate picture of what really affects the points. 
+
+# 4) Summary of the fitted model
+
+```{r}
+summary(my_model2)
+```
+
+__Interpretation:__ Attitude and points are strongly positively associated. The multiple R squared of the model means the square of the correlation coefficient between attitude and points. This means that around 19% of the variation in points is explained by the variation in attitude. 
+
+```{r}
+# Drawing a scatter plot of the relationship between attitude and points, with the regression line
+
+qplot(attitude, points, data = students2014) + geom_smooth(method = "lm")
+```
+
+# 5) Model validation
+
+```{r}
+# Model validation with diagnostic plots
+par(mfrow = c(2,2))
+
+plot(my_model2, which=c(1,2,5))
+```
+
+__Interpretation:__ This is a way of exploring the validity of the regression model assumptions. How well the assumptions fit reality affects how well the model describes the phenomenon of interest.
+
+The residuals vs. fitted values plot looks reasonably good as well. The assumption of constant variance therefore holds too (size of the errors should not depend on the explanatory variables).
+
+The QQ-plot of the residuals is a way of exploring the assumption that the errors of the model are normally distributed. Here, the plot looks reasonably good (not perfect though), supporting the assumption.
+
+Finally, the residuals vs. leverage plot helps identify which observations might have an unusually high impact. I do not see such observations in the plot.
+
+Overall, based on these plots I think the validity of the assumptions is quite good. They give support that we have not violated the model assumptions very badly at least.
