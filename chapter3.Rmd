@@ -1,0 +1,179 @@
+# Homework 3
+
+*This week we learnt about logistic regression.*
+
+```{r}
+date()
+```
+
+# 1) Alcohol consumption dataset
+
+```{r}
+alc <- read.table("~/IODS-project/data/alc.txt", sep="\t")
+
+colnames(alc)
+```
+__Description:__ The dataset is a data frame, consisting of 382 observations and 35 variables (listed above). Each observation is a student. Information about the dataset can be found here: https://archive.ics.uci.edu/ml/datasets/Student+Performance
+
+In short, the data are from two identical questionnaires related to secondary school student alcohol comsumption in Portugal. The joined data set used in the analyses here combines the two student alcohol consumption data sets. The following adjustments have been made:
+
+# 2) Relationships between alcohol consumption and other variables
+
+__Description:__ The point here is to study the relationships between high/low alcohol consumption and some of the other variables in the data. To do this, I choose to study the relationships alcohol consumption (high_use) has with variables sex, age, goout (going out with friends), and absences (number of school absences).
+
+My assumption about these relationships is that boys, older students, and students who go out a lot with their friends, and students who have a high number of school absences consume more alcohol (i.e. their high_use is more often 'TRUE').
+
+Numerical and graphical explorations of the distributions of the chosen variables and their relationship with alcohol consumption can be found below.
+
+```{r}
+
+library(tidyr)
+library(dplyr)
+
+#Graphical exploration
+
+library(ggplot2)
+
+#Plotting high_use, age and sex
+g1 <- ggplot(alc, aes(x = high_use, y = age, col = sex))
+
+g1 + geom_boxplot() + ggtitle("Student ages by alcohol consumption and sex")
+
+#Plotting high_use, absences and sex
+g2 <- ggplot(alc, aes(x = high_use, y = absences, col = sex))
+
+g2 + geom_boxplot() + ggtitle("Student absences by alcohol consumption and sex")
+
+#Plotting high_use, goout and sex
+g3 <- ggplot(alc, aes(x = high_use, y = goout, col = sex))
+
+g3 + geom_boxplot() + ggtitle("Frequency of going out by alcohol consumption and sex")
+
+#Producing a summary statistic by group
+alc %>% group_by(sex, high_use) %>% summarise(count = n())
+```
+__Interpretation:__ It seems there may be a minor positive correlation with male age and alcohol consumption. If anything, the correlation with female age is very slightly negative. 
+
+It seems that there may be a minor positive correlation with male students' number of absences and alcohol consumption. I see no relationship between female student absences and high_use.
+
+It looks quite clear that there is a positive correlation between how frequently (i.e. a higher number on the range of 1-5) students go out with friends and how much they consume alcohol. This is seen with both sexes, but the relationship is maybe a bit more pronounced among male students.
+
+Finally, the summary statistic grouping alcohol usage and sex shows that there are more male students who heavily consume alcohol, compared to female students (72 males vs. 2 females).
+
+These findings are quite similar to my assumptions before this, except for age which does not seem to really affect alcohol consumption in this dataset. Time to do statistical tests to see which variables actually explain high_use (below).
+
+# 3) Logistic regression
+
+```{r}
+
+#Fitting a logistic regression model with high_use as the target variable and sex, age, absences and goout as predictors
+m <- glm(high_use ~ age + sex + absences + goout, data = alc, family = "binomial")
+
+#Printing out a summary of the model
+summary(m)
+
+```
+__Interpretation:__ The logistic regression shows the statistical relationship between the explanatory variables and the binary high/low alcohol consumption variable. 
+
+The summary of the model shows that except for age, the other explanatory variables are statistically significant. They therefore have a significant relationship with alcohol consumption. Being a male student, having many absences and going out a lot with friends all increase alcohol consumption in this dataset.
+
+The factor variable in the model (sex) here shows how being a male student affects alcohol consumption. It means a Wald test was performed to test whether the pairwise difference between the coefficients of males and females is different from zero or not. Here it is significantly different.
+
+However, as age is not significant in the model, it should be discarded. Below is thus a better model.
+
+```{r}
+
+#Fitting a logistic regression model without age as an explanatory variable
+m2 <- glm(high_use ~ goout + absences + sex , data = alc, family = "binomial")
+
+# print out a summary of the model
+summary(m2)
+
+```
+
+The interpretation is the same as above. We can also see that the AIC value is lower for this simpler model, indicating that it is indeed a better fitting one than the one with age included.
+
+```{r}
+
+#Printing out the coefficients of the model
+coef(m2)
+
+#Computing odds ratios (OR)
+OR <- coef(m2) %>% exp
+
+#Computing confidence intervals (CI)
+CI <- confint(m2) %>% exp
+
+#Printing out the odds ratios with their confidence intervals
+cbind(OR, CI)
+
+```
+__Interpretation:__ The coefficients of the model as odds ratios show that they are all above 1. This implies that all the variables in the model are positively associated with alcohol consumption. The odds ratio of sex is highest, the OR of goout the second highest and the OR of absences is barely over 1.
+
+As all OR are over 1, they are in line with my assumptions that there is a positive relationship between alcohol consumption and frequency of absences and going out, and with being a male student.
+
+# 4) Predictive power of the model
+
+```{r}
+
+#I will explore the predictive power of the model by using the variables with a statistically significant relationship with alcohol consumption. 
+
+#Predicting the probability of high_use
+probabilities <- predict(m2, type = "response")
+
+#Adding the predicted probabilities to 'alc'
+alc <- mutate(alc, probability = probabilities)
+
+#Using the probabilities to make a prediction of high_use
+alc <- mutate(alc, prediction = probability > 0.5)
+
+#Tabulating the target variable versus the predictions
+table(high_use = alc$high_use, prediction = alc$prediction)
+#This provides a 2x2 cross tabulation of predictions versus the actual values.
+
+```
+
+```{r}
+
+#Drawing plot of 'high_use' versus 'probability' in 'alc'
+g <- ggplot(alc, aes(x = probability, y = high_use, col = prediction))
+
+g + geom_point()
+#A graphical visualization of both the actual values and the predictions.
+
+```
+__Interpretation:__ The model does not do a perfect job with predicting alcohol consumption. But let's see about the total proportion of inaccurately classified individuals (the training error):
+
+```{r}
+
+#Tabulating the target variable versus the predictions
+table(high_use = alc$high_use, prediction = alc$prediction) %>% prop.table() %>% addmargins()
+
+```
+```{r}
+
+#Defining a loss function (mean prediction error)
+loss_func <- function(class, prob) {
+  n_wrong <- abs(class - prob) > 0.5
+  mean(n_wrong)
+}
+
+#Calling loss_func to compute the average number of wrong predictions in the (training) data
+loss_func(class = alc$high_use, prob = alc$probability)
+
+
+```
+__Interpretation:__ The training error (i.e. inaccurately classified individuals) is 0.209 with this model. It means the average number of wrong predictions in the training data. The prediction error could be of course better, but is still more useful than predicting individual alcohol consumption by flipping a coin :-) 
+As a bonus exercise, I will perform a 10-fold cross-validation on the model (below).  
+
+```{r}
+
+# K-fold cross-validation
+library(boot)
+cv <- cv.glm(data = alc, cost = loss_func, glmfit = m2, K = 10)
+
+# average number of wrong predictions in the cross validation
+cv$delta[1]
+
+```
+__Interpretation:__ With a prediction error of 0.225 with the test set, my model performs slightly better than the model introduced in the DataCamp exercise (with an error of ~0.26). 

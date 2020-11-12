@@ -11,121 +11,106 @@
 
 setwd("~/IODS-project/data")
 
-math <- read.csv("student-mat.csv")
+math <- read.csv("student-mat.csv", sep=";", header=TRUE)
 
-## 2) Read the full learning2014 data into R
-learning2014 <- read.table("http://www.helsinki.fi/~kvehkala/JYTmooc/JYTOPKYS3-data.txt", 
-                header=TRUE, sep="\t")
+por <- read.csv("student-por.csv", sep=";", header=TRUE)
 
-# Explore the structure of the data
-str(learning2014)
-# Describe the output: This is a data frame of 183 observations and 60 variables.
-# All other variables (columns) are integers, 
-# but the last one (gender) is a factor with 2 levels.
+str(math)
+str(por)
+#Both dataframes above have the same variables (rows)
+#Some of the variables are factors, such as school, sex or famsize. 
+#Some are integers such as age and absences.
 
-# Explore the dimensions of the data
-dim(learning2014)
-# Describe the output: There are 183 rows and 60 columns in the data.
-# The output looks like this:
-# [1] 183  60
+dim(math)
+#There are 395 observations and 33 rows
 
-## 3) Create an analysis dataset with the variables 
+dim(por)
+#There are 649 observations and 33 rows
 
-# gender, age, attitude, deep, stra, surf and points 
 
-# by combining questions in the learning2014 data, as defined in the datacamp exercises 
-# and also on the bottom part of the following page
-# http://www.helsinki.fi/~kvehkala/JYTmooc/JYTOPKYS2-meta.txt. 
- 
-# Accessing the dplyr library
+#Join the two data sets using the variables "school", "sex", "age", "address", 
+#"famsize", "Pstatus", "Medu", "Fedu", "Mjob", "Fjob", "reason", "nursery", "internet" 
+#as (student) identifiers. Keep only the students present in both data sets. 
+#Explore the structure and dimensions of the joined data.
+
 library(dplyr)
 
-# Combining questions related to deep, surface and strategic learning
-deep_questions <- c("D03", "D11", "D19", "D27", "D07", "D14", "D22", "D30","D06", 
-                    "D15", "D23", "D31")
-surface_questions <- c("SU02","SU10","SU18","SU26", "SU05","SU13","SU21","SU29","SU08",
-                       "SU16","SU24","SU32")
-strategic_questions <- c("ST01","ST09","ST17","ST25","ST04","ST12","ST20","ST28")
+join_by <- c("school","sex","age","address","famsize","Pstatus","Medu","Fedu","Mjob","Fjob",
+             "reason","nursery","internet")
 
-# Scale all combination variables to the original scales (by taking the mean). 
+math_por <- inner_join(math, por, by = join_by, suffix = c(".math", ".por"))
 
-learning2014$Attitude <- learning2014$Attitude / 10
-# Doing this because the column Attitude is a sum of 10 questions related to students 
-# attitude towards statistics, each measured on the Likert scale (1-5). 
-# Scaling the combination variable back to the 1-5 scale.
+# glimpse at the data
+glimpse(math_por)
 
-# Selecting the columns related to deep learning and creating column 'deep' by averaging
-deep_columns <- select(learning2014, one_of(deep_questions))
-learning2014$deep <- rowMeans(deep_columns)
+#There are now 382 observations and 53 columns. Some variables are still factors and the others integers.
 
-# Selecting the columns related to surface learning and creating column 'surf' by averaging
-surface_columns <- select(learning2014, one_of(surface_questions))
-learning2014$surf <- rowMeans(surface_columns)
 
-# Selecting the columns related to strategic learning and creating column 'stra' by averaging
-strategic_columns <- select(learning2014, one_of(strategic_questions))
-learning2014$stra <- rowMeans(strategic_columns)
+#Using the solution from the DataCamp exercise to combine the 'duplicated' answers in the joined data. 
 
-# Checking that these new columns have appeared
-str(learning2014)
+#Creating a new data frame 'alc' with only the joined columns
+alc <- select(math_por, one_of(join_by))
 
-# Selecting only the following 7 columns:
-# gender, age, attitude, deep, stra, surf, points 
+#These are the columns in the datasets which were not used for joining the data
+notjoined_columns <- colnames(math)[!colnames(math) %in% join_by]
 
-keep_columns <- c("gender","Age","Attitude", "deep", "stra", "surf", "Points")
+#Printing out the columns not used for joining
+notjoined_columns
 
-# Select the 'keep_columns' to create a new dataset 
-# Calling the new dataset "learning2014_chosen"
-learning2014_chosen <- select(learning2014, one_of(keep_columns))
+#Below is the for loop for combining the duplicated answers in the joined data:
 
-# print out the column names of the data
-colnames(learning2014_chosen)
+#For every column name not used for joining...
+for(column_name in notjoined_columns) {
+  #Select two columns from 'math_por' with the same original name
+  two_columns <- select(math_por, starts_with(column_name))
+  #Select the first column vector of those two columns
+  first_column <- select(two_columns, 1)[[1]]
+  
+  #If that first column vector is numeric...
+  if(is.numeric(first_column)) {
+    #Take a rounded average of each row of the two columns and
+    #Add the resulting vector to the alc data frame
+    alc[column_name] <- round(rowMeans(two_columns))
+  } else { #Else if it's not numeric...
+    #Add the first column vector to the alc data frame
+    alc[column_name] <- first_column
+  }
+}
 
-# changing the names of the columns with a capital first letter
-colnames(learning2014_chosen)[2] <- "age"
-colnames(learning2014_chosen)[3] <- "attitude"
-colnames(learning2014_chosen)[7] <- "points"
+#Glimpse at the new combined data
+glimpse(alc)
+#There are now 382 observations and 33 variables. 
+#In other words, there are no duplicated variables anymore.
 
-# print out the new column names of the data
-colnames(learning2014_chosen)
 
-# Exclude observations where the exam points variable is zero. 
+#Take the average of the answers related to weekday and weekend alcohol consumption 
+#to create a new column 'alc_use' to the joined data. 
 
-# Selecting rows where points is greater than zero
-learning2014_chosen <- filter(learning2014_chosen, points > 0)
+#Defining a new column alc_use by combining weekday and weekend alcohol use
+alc <- mutate(alc, alc_use = (Dalc + Walc) / 2)
 
-# (The data should then have 166 observations and 7 variables) (1 point)
-# It does.
+#Use 'alc_use' to create a new logical column 'high_use' which is TRUE for students 
+#for which 'alc_use' is greater than 2 (and FALSE otherwise).
 
-## 4) Set the working directory of your R session the iods project folder. 
-# Save the analysis dataset to the ‘data’ folder, using for example write.csv() 
-# or write.table() functions. You can name the data set for example as 
-# learning2014(.txt or .csv). See ?write.csv for help or search the web for 
-# pointers and examples. Demonstrate that you can also read the data again 
-# by using read.table() or read.csv(). 
-# (Use `str()` and `head()` to make sure that the structure of the data is correct). (3 points)
+#Defining a new logical column 'high_use'
+alc <- mutate(alc, high_use = alc_use > 2)
 
-# Doing the tasks mentioned above:
 
-setwd("~/IODS-project")
+#Glimpse at the joined and modified data to make sure everything is in order. 
+#The joined data should now have 382 observations of 35 variables. 
 
-#?write.csv
+glimpse(alc)
+#Yes, it now has 382 observations and 35 variables.
 
-write.table(learning2014_chosen, file = "data/learning2014_chosen.txt", quote = FALSE, 
-          sep = "\t", col.names = TRUE)
+#Save the joined and modified data set to the ‘data’ folder, 
+#using for example write.csv() or write.table() functions.
 
-learning2014_test <- read.table("data/learning2014_chosen.txt", sep = "\t")
+write.table(alc, file="~/IODS-project/data/alc.txt", quote=FALSE, sep="\t", col.names=TRUE)
 
-str(learning2014_test)
-head(learning2014_test)
 
-###### TESTING BELOW (not compulsory for the exercise)
+#Testing that it's still readable
+alc_test <- read.table("~/IODS-project/data/alc.txt", sep="\t")
 
-# Checking that the wrangled data is similar to the ready dataset on the web 
-
-learningdata_web <- read.table("http://s3.amazonaws.com/assets.datacamp.com/production/course_2218/datasets/learning2014.txt", header=TRUE, sep=",")
-
-str(learningdata_web)
-head(learningdata_web)
-
-# It is.
+glimpse(alc_test)
+str(alc_test)
+#Looks good to me.
