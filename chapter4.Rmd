@@ -49,6 +49,7 @@ corrplot(cor_matrix, method="circle", type = "upper", cl.pos = "b", tl.pos = "d"
 summary(Boston)
 
 ```
+
 __Description:__ The correlation plot and matrix above show that e.g. age (proportion of owner-occupied units built prior to 1940) and dis (weighted mean of distances to five Boston employment centres), nox (nitrogen oxides concentration) and indus (proportion of non-retail business acres per town) are strongly negatively correlated. On the other hand, crim (per capita crime rate by town) is positively correlated with rad (index of accessibility to radial highways) and tax (full-value property-tax rate). Some not-so-surprising relationships can be seen, such as a strong negative correlation between medv (median value of owner-occupied homes) and lstat (lower status of the population as %).
 
 The summary statistics show that some variables have a wide distribution (e.g. tax), while most observations of some other variables are found on a much narrower range (e.g. chas).
@@ -145,9 +146,9 @@ classes <- as.numeric(train$crime)
 # plot the lda results
 plot(lda.fit, dimen = 2, col = classes, pch = classes)
 lda.arrows(lda.fit, myscale = 1)
-# I hope this shows in the diary file, as the two lines of code above should be run together
 
 ```
+
 Next, I will predict the crime classes with the LDA model on the test data. 
 
 ```{r}
@@ -165,8 +166,6 @@ lda.pred <- predict(lda.fit, newdata = test)
 table(correct = correct_classes, predicted = lda.pred$class)
 
 ```
-
-Save the crime categories from the test set and then remove the categorical crime variable from the test dataset. Then predict the classes. Cross tabulate the results with the crime categories from the test set. Comment on the results. (0-3 points)
 
 __Description:__ The LDA model does quite a good job at predicting the crime classes on the test data. When the correct class is low, the model predicts mostly correctly. When the correct class is med_low, most predictions are still correct, but now there are predictions in three different categories. When the correct class is med_high, again the model predicts mostly correctly. When the class is high, the model predicts all cases correctly. Therefore, the model is at its best when predicting the high crime rate class.
 
@@ -220,6 +219,7 @@ twcss <- sapply(1:k_max, function(k){kmeans(boston_scaled, k)$tot.withinss})
 qplot(x = 1:k_max, y = twcss, geom = 'line')
 
 ```
+
 __Description:__ Looks like K = 2 is the optimal number of clusters here. Using that, I'm running the algorithm again (below).
 
 ```{r}
@@ -231,4 +231,18 @@ km <-kmeans(boston_scaled, centers = 2)
 pairs(boston_scaled, col = km$cluster)
 
 ```
-__Description:__ The whole dataset is plotted above, with the two clusters illustrated by different colours.
+
+__Description:__ The whole dataset is plotted above, with the two clusters illustrated by different colours. Because the small plots are hard to see, I will split the variables to smaller groups (below) for easier viewing.
+
+```{r}
+
+# plot the dataset with the clusters
+pairs(boston_scaled[1:5], col = km$cluster)
+
+# plot the dataset with the clusters
+pairs(boston_scaled[6:10], col = km$cluster)
+
+# plot the dataset with the clusters
+pairs(boston_scaled[11:14], col = km$cluster)
+
+```
