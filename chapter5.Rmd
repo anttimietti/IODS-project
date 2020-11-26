@@ -9,237 +9,166 @@ date()
 ```{r}
 
 #Loading the data
-human <- read.table("~/IODS-project/data/human.txt", sep="\t")
+human <- read.table("~/IODS-project/data/human2.txt", sep="\t")
+#Note: It's "human2" because I wanted to keep the "human.txt" wrangled for last week's exercise :-)
 
-```
-
-# 1) Overview of the data
-
-Below is a graphical overview of the data, and summaries of the variables. 
-
-```{r}
-
-# Access GGally
+#Accessing necessary libraries
 library(GGally)
-
-
 library(tidyr)
 library(corrplot)
-
-# visualize the 'human' variables
-ggpairs(human)
-
-# calculate the correlation matrix and round it
-cor_matrix<-cor(Boston) %>% round(digits=2)
-
-# compute the correlation matrix and visualize it with corrplot
-cor(human) %>% corrplot(cor_matrix, method="circle", type = "upper", cl.pos = "b", tl.pos = "d", tl.cex = 0.6)
-
+library(FactoMineR)
+library(dplyr)
 
 ```
 
-__Description:__ 
+# 1) Overview of 'human' data
 
-Describe and interpret the outputs, commenting on the distributions of the variables and the relationships between them. (0-3 points)
+The 'human' data analysed here consists of "human development indices" for different countries, by the United Nations Development Programme. 
 
-
-# 2) Principal component analysis (PCA)
-
-This will be performed on the not standardized data. Show the variability captured by the principal components. 
-
-Draw a biplot displaying the observations by the first two principal components (PC1 coordinate in x-axis, PC2 coordinate in y-axis), along with arrows representing the original variables. (0-2 points)
-
+Below is a graphical overview of the data, and summaries of the variables in it. 
 
 ```{r}
 
-# perform principal component analysis (with the SVD method)
+#Summary of the 'human' variables
+summary(human)
+
+#Visualizing the variables
+ggpairs(human)
+
+```
+
+__Distribution of variables:___ Most variables are quite close to being normally distributed. However, especially MatMort (maternal mortality ratio) and AdolBirth (adolescent birth rate) are very skewed to the left, indicating that they have low values in most countries, with some countries having extremely high values.
+
+We can also see that the values for GNI are very spread out. This has important implications for doing a PCA (a bit later in this exercise).
+
+```{r}
+
+#Calculating a correlation matrix and rounding it
+cor_matrix <- cor(human) %>% round(digits=2)
+
+#Visualizing the matrix with corrplot
+corrplot(cor_matrix, method="circle", type = "upper", cl.pos = "b", tl.pos = "d", tl.cex = 0.6)
+
+```
+
+__Relationships between variables:___ The strongest correlations are between MatMort (maternal mortality) and EduExp (expected years of schooling), MatMort and AdolBirth (adolescent birth rate), MatMort and LifeExp (life expectancy), and EduExp and LifeExp. 
+
+The correlation between e.g. LifeExp and EduExp is positive, and negative between LifeExp and MatMort.
+  
+# 2) Principal Component Analysis (PCA)
+
+```{r}
+
+#Perform PCA on non-standardized data (with the SVD method)
 pca_human <- prcomp(human)
 
-# draw a biplot of the principal component representation and the original variables
+#Drawing a biplot of the PC representation and the original variables
 biplot(pca_human, choices = 1:2, cex = c(0.8,1), col = c("grey40", "deeppink2"))
 
 ```
 
-__Description:__ Draw a biplot displaying the observations by the first two principal components (PC1 coordinate in x-axis, PC2 coordinate in y-axis), along with arrows representing the original variables. (0-2 points)
+__Description:__ The plot describes the variability captured by the first two principal components. By definition, PC1 captures the maximum amount of variance from features in the original data. PC2 captures the maximum amount of variability left. 
+
+However, because PCA is sensitive to the relative scaling of the original features, and assumes features with larger variance are more important than ones with smaller variance, this biplot is a bit hard to interpret. I think this is the reason why most of the features are clumped together and hard to read here. But to make some interpretation, the plot shows MatMort has by far the highest standard deviation (length of the arrow). Also, it clearly contributes to PC1, whereas GNI contributes to PC2 (direction of arrows).
+
+Because of the issue of PCA being sensitive to scaling, the variables should be standardized. I will do that next, and repeat the analysis above.
 
 ```{r}
+#Standardizing the variables
+human_std <- scale(human)
 
-# summary of the scaled crime rate
-summary(boston_scaled$crim)
+#Printing out summaries of the standardized variables
+summary(human_std)
 
-# create a quantile vector of crim and print it
-bins <- quantile(boston_scaled$crim)
-bins
+#Performing PCA again (with the SVD method)
+pca_human <- prcomp(human_std)
 
-# create a categorical variable 'crime'
-crime <- cut(boston_scaled$crim, breaks = bins, include.lowest = TRUE, label = c("low", "med_low", "med_high", "high"))
-
-# look at the table of the new factor crime
-table(crime)
-
-# remove original crim from the dataset
-boston_scaled <- dplyr::select(boston_scaled, -crim)
-
-# add the new categorical value to scaled data
-boston_scaled <- data.frame(boston_scaled, crime)
+#Drawing biplot of the principal component representation and the original variables
+biplot(pca_human, choices = 1:2, cex = c(0.8,1), col = c("grey40", "deeppink2"))
 
 ```
 
-__Description:__ The variable crime is now a factor variable with levels low, med_low, med_high and high.
+__Description:__ Now, the plot is easier to interpret (see explanation above). It displays two representations of the data. First, it shows the observations (countries) placed on x and y coordinates defined by the two principal components. Second, it visualizes the relationships of the original features with each other, and with the principal components.
 
-Next, I will divide the dataset to training and test sets, so that 80% of the data belongs to the train set.
+The angle between the arrows here can be interpreted as the correlation between the features. Therefore, lab_sexratio (ratio of labour force participation by sex) and ParlRep (parliamentary representation by sex) are strongly positively correlated. The same is true e.g. for MatMort (maternal mortality ratio) and AdolBirth (adolescent birth rate).
+
+The angle between the feature and a PC axis can be interpreted as the correlation between the two. Here, lab_sexratio and ParlRep (parliamentary representation by sex) are contributing to PC2, and the other features mostly to PC1. 
+
+The length of the arrows corresponds to the features' standard deviation. I see no big difference between those for different variables.
+
+The results are anyhow a bit different than with the non-standardized variables. For example GNI does not stand out in this plot, as it does in the previous one. 
+
+__Interpretation of the PCs:__ I think the plot (with standardized data) shows that countries with high EduExp (expected years of schooling), edu_sex (high proportion of women with secondary education) and LifeExp (life expectancy) are very differentiated from countries with high MatMort (maternal mortality) and AdolBirth (adolescent birth rate). These variables contribute to PC1. 
+
+Also, lab_sexratio (proportion of female labour force) and ParlRep (female parliamentary representation) are correlated with each other, and are basically the only variables to contribute to PC2.
+
+#3) Overview of 'tea' data
 
 ```{r}
 
-# number of rows in the Boston dataset 
-n <- nrow(boston_scaled)
+#Loading the 'tea' data
+data(tea)
 
-# choose randomly 80% of the rows
-ind <- sample(n,  size = n * 0.8)
+#Exploring the structure and dimensions
+str(tea)
+dim(tea)
+#The dataset has 300 observations and 36 variables.
 
-# create training set
-train <- boston_scaled[ind,]
+#Because there are so many variables, I will choose only a subset of them to analyse:
+#Column names to keep in the dataset
+keep_columns <- c("Tea", "How", "sugar", "where", "price", "age_Q", "sophisticated")
 
-# create test set 
-test <- boston_scaled[-ind,]
+#Selecting the 'keep_columns' to create a new dataset
+tea_time <- select(tea, one_of(keep_columns))
+
+#Visualizing the dataset
+gather(tea_time) %>% ggplot(aes(value)) + geom_bar() + theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 8)) + facet_wrap("key", scales = "free")
 
 ```
 
-# 3) Linear Discriminant Analysis
+__Description:__ The dataset consists of answers to a questionnaire on tea. People were asked how they drink tea, what are their product's perception, and some personal details. All variables chosen here are categorical. Above are 7 variables that I chose.
 
+#4) Multiple Correspondence Analysis (MCA)
 
-Standardize the variables in the human data and repeat the above analysis. Interpret the results of both analysis (with and without standardizing). Are the results different? Why or why not? Include captions (brief descriptions) in your plots where you describe the results by using not just your variable names, but the actual phenomenons they relate to. (0-4 points)
-
-Give your personal interpretations of the first two principal component dimensions based on the biplot drawn after PCA on the standardized human data. (0-2 points)
-
-Load the tea dataset from the package Factominer. Explore the data briefly: look at the structure and the dimensions of the data and visualize it. Then do Multiple Correspondence Analysis on the tea data (or to a certain columns of the data, it’s up to you). Interpret the results of the MCA and draw at least the variable biplot of the analysis. You can also explore other plotting options for MCA. Comment on the output of the plots. (0-4 points)
-
-
-
-
-I will fit the linear discriminant analysis on the train set created above, using the categorical crime rate as the target variable and all the other variables in the dataset as predictor variables.
+This dataset consists of categorical variables, so I will use a Multiple Correspondence Analysis on it. 
 
 ```{r}
 
-# linear discriminant analysis
-lda.fit <- lda(crime ~ ., data = train)
+#Multiple correspondence analysis
+mca <- MCA(tea_time, graph = FALSE)
 
-# print the lda.fit object
-lda.fit
+#Summary of the model
+summary(mca)
 
-# the function for lda biplot arrows
-lda.arrows <- function(x, myscale = 1, arrow_heads = 0.1, color = "red", tex = 0.75, choices = c(1,2)){
-  heads <- coef(x)
-  arrows(x0 = 0, y0 = 0, 
-         x1 = myscale * heads[,choices[1]], 
-         y1 = myscale * heads[,choices[2]], col=color, length = arrow_heads)
-  text(myscale * heads[,choices], labels = row.names(heads), 
-       cex = tex, col=color, pos=3)
-}
-
-# target classes as numeric
-classes <- as.numeric(train$crime)
-
-# plot the lda results
-plot(lda.fit, dimen = 2, col = classes, pch = classes)
-lda.arrows(lda.fit, myscale = 1)
-
-```
-
-Next, I will predict the crime classes with the LDA model on the test data. 
-
-```{r}
-
-# first, save the correct classes from test data
-correct_classes <- test$crime
-
-# remove the crime variable from test data
-test <- dplyr::select(test, -crime)
-
-# then, predict classes with test data
-lda.pred <- predict(lda.fit, newdata = test)
-
-# cross tabulate the results
-table(correct = correct_classes, predicted = lda.pred$class)
-
-```
-
-__Description:__ The LDA model does quite a good job at predicting the crime classes on the test data. When the correct class is low, the model predicts mostly correctly. When the correct class is med_low, most predictions are still correct, but now there are predictions in three different categories. When the correct class is med_high, again the model predicts mostly correctly. When the class is high, the model predicts all cases correctly. Therefore, the model is at its best when predicting the high crime rate class.
-
-# 4) k-means clustering
-
-Next, I will reload the Boston dataset, standardize it and then calculate the distances between observations. This is a step towards using a k-means algorithm on the dataset.
-
-```{r}
-
-# load the data
-data("Boston")
-
-# center and standardize variables
-boston_scaled <- scale(Boston)
-
-# change the object to data frame
-boston_scaled <- as.data.frame(boston_scaled)
-
-# Calculating distances below
-# euclidean distance matrix, default option
-dist_eu <- dist(boston_scaled)
-
-# look at the summary of the distances, first with the default option
-summary(dist_eu)
-
-# manhattan distance matrix
-dist_man <- dist(boston_scaled, method = "manhattan")
-
-# look at the summary of the distances, now with the manhattan method
-summary(dist_man)
+#Visualizing the MCA
+plot(mca, invisible=c("ind"), habillage = "quali")
 
 
 ```
 
-Next, I will run a k-means algorithm on the dataset. 
+__Description:__ The plot and its colours are not very nice to look at, sorry. Anyway, the summary and plot show that the first dimension captures about 11% of the variance, and the second dimension about 8.5%. These are not particularly high values, so the other remaining dimensions still explain a lot of the variance here.
+
+Looking at the plot, we can find some patterns of relationship between the variables. But to make it easier, I will use a bit different kind of plot for this data (below).
 
 ```{r}
 
-# k-means clustering, first with 10 clusters
-km <-kmeans(boston_scaled, centers = 10)
+#First, choosing the number of categories per variable
+categories = apply(tea_time, 2, function(x) nlevels(as.factor(x)))
+categories
 
-set.seed(123)
+#Making data frames
+teatime_vars = data.frame(mca$var$coord, Variable = rep(names(categories), 
+    categories))
+teatime_obs = data.frame(mca$ind$coord)
 
-# determine the number of clusters
-k_max <- 10
+#Plotting the variable categories
+ggplot(data = teatime_vars, aes(x = Dim.1, y = Dim.2, label = rownames(teatime_vars))) + 
+    geom_hline(yintercept = 0, colour = "gray70") + geom_vline(xintercept = 0, 
+    colour = "gray70") + geom_text(aes(colour = Variable)) + ggtitle("MCA plot of variables") + theme_classic()
 
-# calculate the total within sum of squares
-twcss <- sapply(1:k_max, function(k){kmeans(boston_scaled, k)$tot.withinss})
-
-# visualize the results
-qplot(x = 1:k_max, y = twcss, geom = 'line')
-
-```
-
-__Description:__ Looks like K = 2 is the optimal number of clusters here. Using that, I'm running the algorithm again (below).
-
-```{r}
-
-# k-means clustering, with two clusters
-km <-kmeans(boston_scaled, centers = 2)
-
-# plot the dataset with the clusters
-pairs(boston_scaled, col = km$cluster)
 
 ```
 
-__Description:__ The whole dataset is plotted above, with the two clusters illustrated by different colours. Because the small plots are hard to see, I will split the variables to smaller groups (below) for easier viewing.
+__Description:__ The distance between variable categories gives a measure of their similarity. So here for example, label "p_upscale" in the price variable is different from all other categories. But "Earl Gray" for the kind of tea and "sugar" (for, well, drinking the tea with sugar or not) are very similar. They are therefore correlated. Some other variables that stand out are e.g. "other" for what the tea is drunk with (if anything), and "tea shop" for where the tea is being bought. Drinking green tea ("green") also seems quite uncorrelated with anything else. 
 
-```{r}
-
-# plot the dataset with the clusters
-pairs(boston_scaled[1:5], col = km$cluster)
-
-# plot the dataset with the clusters
-pairs(boston_scaled[6:10], col = km$cluster)
-
-# plot the dataset with the clusters
-pairs(boston_scaled[11:14], col = km$cluster)
-
-```
+We can also see that being from 45 to 59 years is correlated with thinking that drinking tea is sophisticated (if I understood this variable in the dataset correctly). 
