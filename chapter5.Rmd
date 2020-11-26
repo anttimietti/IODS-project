@@ -27,7 +27,7 @@ The 'human' data analysed here consists of "human development indices" for diffe
 
 Below is a graphical overview of the data, and summaries of the variables in it. 
 
-```{r}
+```{r fig.width=15, fig.height=15}
 
 #Summary of the 'human' variables
 summary(human)
@@ -41,7 +41,7 @@ __Distribution of variables:___ Most variables are quite close to being normally
 
 We can also see that the values for GNI are very spread out. This has important implications for doing a PCA (a bit later in this exercise).
 
-```{r}
+```{r fig.width=12, fig.height=12}
 
 #Calculating a correlation matrix and rounding it
 cor_matrix <- cor(human) %>% round(digits=2)
@@ -57,7 +57,7 @@ The correlation between e.g. LifeExp and EduExp is positive, and negative betwee
   
 # 2) Principal Component Analysis (PCA)
 
-```{r}
+```{r fig.width=13, fig.height=13}
 
 #Perform PCA on non-standardized data (with the SVD method)
 pca_human <- prcomp(human)
@@ -73,7 +73,7 @@ However, because PCA is sensitive to the relative scaling of the original featur
 
 Because of the issue of PCA being sensitive to scaling, the variables should be standardized. I will do that next, and repeat the analysis above.
 
-```{r}
+```{r fig.width=13, fig.height=13}
 #Standardizing the variables
 human_std <- scale(human)
 
@@ -102,7 +102,7 @@ __Interpretation of the PCs:__ I think the plot (with standardized data) shows t
 
 Also, lab_sexratio (proportion of female labour force) and ParlRep (female parliamentary representation) are correlated with each other, and are basically the only variables to contribute to PC2.
 
-#3) Overview of 'tea' data
+# 3) Overview of 'tea' data
 
 ```{r}
 
@@ -130,11 +130,11 @@ gather(tea_time) %>% ggplot(aes(value)) + geom_bar() + theme(axis.text.x = eleme
 
 __Description:__ The dataset consists of answers to a questionnaire on tea. People were asked how they drink tea, what are their product's perception, and some personal details. All variables chosen here are categorical. Above are 7 variables that I chose. The bars show how many times people answered each category of a variable.
 
-#4) Multiple Correspondence Analysis (MCA)
+# 4) Multiple Correspondence Analysis (MCA)
 
 This dataset consists of categorical variables, so I will use a Multiple Correspondence Analysis on it. 
 
-```{r}
+```{r fig.width=13, fig.height=13}
 
 #Multiple correspondence analysis
 mca <- MCA(tea_time, graph = FALSE)
@@ -150,9 +150,9 @@ plot(mca, invisible=c("ind"), habillage = "quali")
 
 __Description:__ The plot and its colours are not very nice to look at, sorry. Anyway, the summary and plot show that the first dimension captures about 11% of the variance, and the second dimension about 8.5%. These are not particularly high values, so the other remaining dimensions still explain a lot of the variance here.
 
-Looking at the plot, we can find some patterns of relationship between the variables. But to make it easier, I will use a bit different kind of plot for this data (below).
+Looking at the plot, we can find some patterns of relationship between the variables. But to make it easier (with better colours and a legend), I will use a ggplot for this data (below).
 
-```{r}
+```{r fig.width=13, fig.height=13}
 
 #First, choosing the number of categories per variable
 categories = apply(tea_time, 2, function(x) nlevels(as.factor(x)))
