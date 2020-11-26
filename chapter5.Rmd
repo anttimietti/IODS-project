@@ -126,7 +126,7 @@ gather(tea_time) %>% ggplot(aes(value)) + geom_bar() + theme(axis.text.x = eleme
 
 ```
 
-__Description:__ The dataset consists of answers to a questionnaire on tea. People were asked how they drink tea, what are their product's perception, and some personal details. All variables chosen here are categorical. Above are 7 variables that I chose.
+__Description:__ The dataset consists of answers to a questionnaire on tea. People were asked how they drink tea, what are their product's perception, and some personal details. All variables chosen here are categorical. Above are 7 variables that I chose. The bars show how many times people answered each category of a variable.
 
 #4) Multiple Correspondence Analysis (MCA)
 
