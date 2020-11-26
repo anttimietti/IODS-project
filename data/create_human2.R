@@ -15,6 +15,8 @@
 
 human <- read.table("~/IODS-project/data/human.txt")
 
+library(dplyr)
+
 glimpse(human)
 
 #Explore the structure and the dimensions of the data
@@ -23,21 +25,20 @@ glimpse(human)
 str(human)
 dim(human)
 #The data consist of 195 observations (rows) and 19 variables (columns).
-#The dataset consists of 
-
-...
+#The dataset consists of "human development indices" for different countries, by the
+#United Nations Development Programme.
 
 #Mutate the data: transform the Gross National Income (GNI) variable to numeric.
 
 #First, access the stringr package
 library(stringr)
 
+#Also removing the commas from GNI
+str_replace(human$GNI, pattern=",", replace ="") 
+
+#Transforming the variable to numeric
 human$GNI <- as.numeric(human$GNI)
 str(human)
-
-#Remove the commas from GNI and print out a numeric version of it
-#str_replace(human$GNI, pattern=",", replace ="") %>% as.numeric()
-
 
 #Exclude unneeded variables: keep only the columns matching the following variable names: 
 #"Country", "Edu2.FM", "Labo.FM", "Edu.Exp", "Life.Exp", "GNI", "Mat.Mor", "Ado.Birth", "Parli.F"
@@ -92,10 +93,10 @@ str(human_)
 #Save the human data, including the row names, in the data folder. 
 #Overwriting the old 'human' data.
 
-write.table(human_, file="~/IODS-project/data/human.txt", sep="\t", col.names=TRUE)
+write.table(human_, file="~/IODS-project/data/human2.txt", sep="\t", col.names=TRUE)
 
 #Testing that it's still readable
-human_test <- read.table("~/IODS-project/data/human.txt", sep="\t")
+human_test <- read.table("~/IODS-project/data/human2.txt", sep="\t")
 
 glimpse(human_test)
 #Looks good.
